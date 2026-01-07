@@ -6,6 +6,7 @@ import '../widgets/pie_chart_widget.dart';
 import '../widgets/task_card_widget.dart';
 import 'category_tasks_screen.dart';
 import 'task_detail_screen.dart';
+import 'status_tasks_screen.dart'; // Đảm bảo bạn đã tạo file này
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -16,8 +17,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   Map<TaskStatus, int> _taskStats = {};
-  Map<String, int> _categoryStats = {}; // ✅ categoryId -> count
-  Map<String, Category> _categoryMap = {}; // ✅ categoryId -> Category
+  Map<String, int> _categoryStats = {};
+  Map<String, Category> _categoryMap = {};
   List<Task> _recentTasks = [];
   bool _isLoading = true;
 
@@ -45,7 +46,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _isLoading = false);
   }
 
-  int _getTotalTasks() => _taskStats.values.fold(0, (sum, count) => sum + count);
+  int _getTotalTasks() =>
+      _taskStats.values.fold(0, (sum, count) => sum + count);
 
   @override
   Widget build(BuildContext context) {
@@ -54,34 +56,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-        onRefresh: _loadDashboardData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 30),
-              _buildMyTasksSection(),
-              const SizedBox(height: 30),
-              _buildPieChartSection(),
-              const SizedBox(height: 30),
-              _buildCategorySection(),
-              const SizedBox(height: 30),
-              _buildRecentTasksSection(),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
+              onRefresh: _loadDashboardData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 30),
+                    _buildMyTasksSection(),
+                    const SizedBox(height: 30),
+                    _buildPieChartSection(),
+                    const SizedBox(height: 30),
+                    _buildCategorySection(),
+                    const SizedBox(height: 30),
+                    _buildRecentTasksSection(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushNamed(context, '/addTask').then((_) => _loadDashboardData());
+          Navigator.pushNamed(context, '/addTask')
+              .then((_) => _loadDashboardData());
         },
-        child: const Icon(Icons.add, size: 28),
         backgroundColor: Colors.blue,
         elevation: 4,
+        child: const Icon(Icons.add, size: 28, color: Colors.white),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
@@ -94,21 +97,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Task Manager', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const Text('Task Manager',
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
             const SizedBox(height: 4),
-            Text('App Developer', style: TextStyle(fontSize: 16, color: Colors.grey[600]!)),
+            Text('App Developer',
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]!)),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20)),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.workspace_premium, size: 14, color: Colors.blue),
+                  const Icon(Icons.workspace_premium,
+                      size: 14, color: Colors.blue),
                   const SizedBox(width: 6),
                   Text(
                     '${_getTotalTasks()} Total Tasks',
-                    style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -118,7 +132,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         CircleAvatar(
           radius: 30,
           backgroundColor: Colors.blue[100],
-          child: const Text('TM', style: TextStyle(color: Colors.blue, fontSize: 20, fontWeight: FontWeight.bold)),
+          child: const Text('TM',
+              style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -131,7 +149,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('My Tasks', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const Text('My Tasks',
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.blue),
               onPressed: _loadDashboardData,
@@ -142,32 +164,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            _buildStatCard(
+            _buildClickableStatCard(
               title: 'To Do',
               count: _taskStats[TaskStatus.todo] ?? 0,
               color: Colors.orange,
               icon: Icons.access_time,
-              subtitle: 'tasks now. 1 started',
+              status: TaskStatus.todo,
             ),
             const SizedBox(width: 12),
-            _buildStatCard(
+            _buildClickableStatCard(
               title: 'In Progress',
               count: _taskStats[TaskStatus.inProgress] ?? 0,
               color: Colors.blue,
               icon: Icons.autorenew,
-              subtitle: 'tasks now. 1 started',
+              status: TaskStatus.inProgress,
             ),
             const SizedBox(width: 12),
-            _buildStatCard(
+            _buildClickableStatCard(
               title: 'Done',
               count: _taskStats[TaskStatus.done] ?? 0,
               color: Colors.green,
               icon: Icons.check_circle,
-              subtitle: 'tasks now. 13 started',
+              status: TaskStatus.done,
             ),
           ],
         ),
       ],
+    );
+  }
+
+  // Hàm helper để xử lý nhấn vào Card
+  Widget _buildClickableStatCard({
+    required String title,
+    required int count,
+    required Color color,
+    required IconData icon,
+    required TaskStatus status,
+  }) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StatusTasksScreen(
+                status: status,
+                title: title,
+                color: color,
+              ),
+            ),
+          ).then((_) => _loadDashboardData());
+        },
+        child: _buildStatCard(
+          title: title,
+          count: count,
+          color: color,
+          icon: icon,
+          subtitle: 'Tap to view',
+        ),
+      ),
     );
   }
 
@@ -178,44 +234,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required String subtitle,
   }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2), width: 1),
-          boxShadow: [
-            BoxShadow(color: color.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, size: 18, color: color),
+              ),
+              const Spacer(),
+              if (count > 0)
                 Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-                  child: Icon(icon, size: 18, color: color),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: color, borderRadius: BorderRadius.circular(10)),
+                  child: Text('+$count',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold)),
                 ),
-                const Spacer(),
-                if (count > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-                    child: Text('+$count', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text('$count', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700]!)),
-            const SizedBox(height: 8),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey[500]!)),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text('$count',
+              style: TextStyle(
+                  fontSize: 32, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 4),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700]!)),
+          const SizedBox(height: 8),
+          Text(subtitle,
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]!)),
+        ],
       ),
     );
   }
@@ -235,7 +301,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Task Distribution', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const Text('Task Distribution',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87)),
           const SizedBox(height: 20),
           SizedBox(height: 200, child: PieChartWidget(stats: _taskStats)),
           const SizedBox(height: 20),
@@ -264,8 +334,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700]!)),
-            Text('${(percentage * 100).toStringAsFixed(1)}%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[700]!)),
+            Text('${(percentage * 100).toStringAsFixed(1)}%',
+                style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.bold, color: color)),
           ],
         ),
         const SizedBox(height: 8),
@@ -277,7 +353,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           borderRadius: BorderRadius.circular(4),
         ),
         const SizedBox(height: 4),
-        Text('$value of $total tasks completed', style: TextStyle(fontSize: 12, color: Colors.grey[500]!)),
+        Text('$value of $total tasks completed',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]!)),
       ],
     );
   }
@@ -296,7 +373,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Tasks by Category', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const Text('Tasks by Category',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
             TextButton(
               onPressed: () async {
                 await Navigator.pushNamed(context, '/categories');
@@ -327,10 +408,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                   );
-                  _loadDashboardData(); // quay lại dashboard thì refresh
+                  _loadDashboardData();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: c.color.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
@@ -342,11 +424,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Container(
                         width: 32,
                         height: 32,
-                        decoration: BoxDecoration(color: c.color, shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                            color: c.color, shape: BoxShape.circle),
                         child: Center(
                           child: Text(
                             '$count',
-                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -358,11 +444,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             width: 150,
                             child: Text(
                               c.name,
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700]!),
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700]!),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Text('$count tasks', style: TextStyle(fontSize: 12, color: Colors.grey[500]!)),
+                          Text('$count tasks',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[500]!)),
                         ],
                       ),
                     ],
@@ -383,10 +474,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Recent Tasks', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const Text('Recent Tasks',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
             TextButton(
               onPressed: () => Navigator.pushNamed(context, '/calendar'),
-              child: const Text('View All', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)),
+              child: const Text('View All',
+                  style: TextStyle(
+                      color: Colors.blue, fontWeight: FontWeight.w500)),
             ),
           ],
         ),
@@ -394,19 +491,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (_recentTasks.isEmpty)
           Container(
             padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(color: Colors.grey[50]!, borderRadius: BorderRadius.circular(12)),
+            width: double.infinity,
+            decoration: BoxDecoration(
+                color: Colors.grey[50]!,
+                borderRadius: BorderRadius.circular(12)),
             child: Column(
               children: [
                 Icon(Icons.event_note, size: 48, color: Colors.grey[400]!),
                 const SizedBox(height: 12),
-                Text('No tasks yet', style: TextStyle(color: Colors.grey[500]!, fontSize: 16)),
-                const SizedBox(height: 8),
-                Text('Create your first task to get started', style: TextStyle(color: Colors.grey[400]!, fontSize: 14)),
+                Text('No tasks yet',
+                    style: TextStyle(color: Colors.grey[500]!, fontSize: 16)),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => Navigator.pushNamed(context, '/addTask'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  child: const Text('Create Task'),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8))),
+                  child: const Text('Create Task',
+                      style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
@@ -432,7 +535,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   },
                   onStatusChanged: () async {
-                    final newStatus = task.status == TaskStatus.done ? TaskStatus.todo : TaskStatus.done;
+                    final newStatus = task.status == TaskStatus.done
+                        ? TaskStatus.todo
+                        : TaskStatus.done;
                     final updatedTask = Task(
                       id: task.id,
                       title: task.title,
@@ -444,7 +549,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       notes: task.notes,
                       createdAt: task.createdAt,
                     );
-
                     await _dbHelper.updateTask(updatedTask);
                     _loadDashboardData();
                   },
@@ -460,13 +564,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildBottomNavigationBar() {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+        borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -2)),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2)),
         ],
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+        borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20), topRight: Radius.circular(20)),
         child: BottomNavigationBar(
           currentIndex: 0,
           backgroundColor: Colors.white,
@@ -476,9 +585,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           showUnselectedLabels: true,
           elevation: 0,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_month_rounded), label: 'Calendar'),
-            BottomNavigationBarItem(icon: Icon(Icons.category_rounded), label: 'Categories'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_month_rounded), label: 'Calendar'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.category_rounded), label: 'Categories'),
           ],
           onTap: (index) {
             if (index == 1) {
