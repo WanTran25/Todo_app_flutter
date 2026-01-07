@@ -51,8 +51,8 @@ class _CategoryTasksScreenState extends State<CategoryTasksScreen> {
         title: Row(
           children: [
             Container(
-              width: 14,
-              height: 14,
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
                 color: widget.categoryColor,
                 shape: BoxShape.circle,
@@ -95,7 +95,7 @@ class _CategoryTasksScreenState extends State<CategoryTasksScreen> {
             final task = _tasks[index];
             return TaskCardWidget(
               task: task,
-              showCategory: false, // vì đang lọc theo 1 category rồi
+              showCategory: false,
               onTap: () {
                 Navigator.push(
                   context,

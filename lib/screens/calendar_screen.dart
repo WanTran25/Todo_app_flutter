@@ -39,9 +39,49 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _dailyTasks.sort((a, b) => a.startTime.compareTo(b.startTime));
     setState(() => _isLoading = false);
   }
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  List<DateTime> _weekDaysOf(DateTime date) {
+    // Calendar header của bạn là Mon..Sun => tuần bắt đầu từ Monday
+    final startOfWeek = date.subtract(Duration(days: date.weekday - DateTime.monday));
+    return List.generate(7, (i) {
+      final d = startOfWeek.add(Duration(days: i));
+      return DateTime(d.year, d.month, d.day);
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+      _loadDailyTasks();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final weekDays = _weekDaysOf(_selectedDate);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -62,8 +102,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
             const SizedBox(height: 10),
             Text(DateFormat('MMMM, yyyy').format(_selectedDate), style: const TextStyle(fontSize: 18, color: Colors.grey)),
             const SizedBox(height: 20),
+            // Calender pick date
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickDate,
+                    icon: const Icon(Icons.calendar_month),
+                    label: Text(DateFormat('EEE, MMM d, yyyy').format(_selectedDate)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
 
-            // Calendar mock (giữ nguyên)
+            // Calendar mock
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
@@ -79,16 +135,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ],
                   ),
                   const SizedBox(height: 10),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(7, (index) {
-                      final day = 5 + index;
-                      final isToday = day == _selectedDate.day;
+                    children: weekDays.map((date) {
+                      final isSelected = _isSameDay(date, _selectedDate);
+
                       return GestureDetector(
                         onTap: () {
-                          setState(() {
-                            _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, day);
-                          });
+                          setState(() => _selectedDate = date);
                           _loadDailyTasks();
                         },
                         child: Container(
@@ -96,19 +151,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           height: 40,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: isToday ? Colors.blue : Colors.transparent,
+                            color: isSelected ? Colors.blue : Colors.transparent,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '$day',
+                            '${date.day}',
                             style: TextStyle(
-                              color: isToday ? Colors.white : Colors.black,
+                              color: isSelected ? Colors.white : Colors.black,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       );
-                    }),
+                    }).toList(),
                   ),
                 ],
               ),

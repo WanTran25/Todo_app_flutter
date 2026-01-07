@@ -13,7 +13,7 @@ class Task {
   DateTime startTime;
   DateTime endTime;
   TaskStatus status;
-  String categoryId; // ✅ thay vì enum TaskCategory
+  String categoryId;
   DateTime createdAt;
   String? notes;
 
