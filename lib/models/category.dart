@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 
-/// Category động 100% (Option C)
 class Category {
   final String id;
   final String name;

@@ -23,24 +23,18 @@ class DatabaseHelper {
 
   Future<SharedPreferences> get _prefs async => SharedPreferences.getInstance();
 
-  // -----------------------------
+  // ----------------
   // Seed categories
-  // -----------------------------
+  // ----------------
   List<Category> _defaultSeedCategories() => [
     Category(
       id: uncategorizedId,
       name: 'UNCATEGORIZED',
       colorValue: Colors.grey.value,
     ),
-    Category(id: 'sportApp', name: 'SPORT APP', colorValue: Colors.green.value),
-    Category(id: 'medicalApp', name: 'MEDICAL APP', colorValue: Colors.blue.value),
-    Category(id: 'rentApp', name: 'RENT APP', colorValue: Colors.orange.value),
-    Category(id: 'notes', name: 'NOTES', colorValue: Colors.purple.value),
-    Category(
-      id: 'gamingPlatform',
-      name: 'GAMING PLATFORM APP',
-      colorValue: Colors.red.value,
-    ),
+    Category(id: 'Study', name: 'STUDY', colorValue: Colors.green.value),
+    Category(id: 'Work', name: 'WORK', colorValue: Colors.blue.value),
+    Category(id: 'Personal', name: 'PERSONAL', colorValue: Colors.orange.value),
   ];
 
   Future<void> _ensureSeedCategories() async {
@@ -113,7 +107,7 @@ class DatabaseHelper {
 
   String _generateCategoryId() {
     final ts = DateTime.now().microsecondsSinceEpoch;
-    final r = Random().nextInt(1 << 32);
+    final r = Random().nextInt(1 << 31);
     return 'c_${ts.toRadixString(16)}_${r.toRadixString(16)}';
   }
 
@@ -138,7 +132,7 @@ class DatabaseHelper {
 
   Future<bool> updateCategory(Category category) async {
     try {
-      if (category.id == uncategorizedId) return false; // tránh rối
+      if (category.id == uncategorizedId) return false;
       final categories = await getAllCategories();
       final idx = categories.indexWhere((c) => c.id == category.id);
       if (idx == -1) return false;
@@ -184,9 +178,9 @@ class DatabaseHelper {
     }
   }
 
-  // -----------------------------
-  // TASK CRUD (giữ gần như cũ)
-  // -----------------------------
+  // ----------
+  // TASK CRUD
+  // ----------
 
   Future<int> _getNextTaskId() async {
     final prefs = await _prefs;
@@ -215,7 +209,7 @@ class DatabaseHelper {
         }
       }
 
-      // nếu task tham chiếu categoryId không tồn tại -> chuyển về uncategorized (không bắt buộc save ngay)
+      // nếu task tham chiếu categoryId không tồn tại -> chuyển về uncategorized
       final catMap = await getCategoryMap();
       for (final t in tasks) {
         if (!catMap.containsKey(t.categoryId)) {
@@ -347,7 +341,7 @@ class DatabaseHelper {
     }
   }
 
-// Lấy tasks theo categoryId (Option C)
+// Lấy tasks theo categoryId
   Future<List<Task>> getTasksByCategoryId(String categoryId) async {
     try {
       final tasks = await getAllTasks();
