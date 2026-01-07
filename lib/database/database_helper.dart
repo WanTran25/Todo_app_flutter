@@ -24,7 +24,7 @@ class DatabaseHelper {
   Future<SharedPreferences> get _prefs async => SharedPreferences.getInstance();
 
   // -----------------------------
-  // Seed categories (Option C)
+  // Seed categories
   // -----------------------------
   List<Category> _defaultSeedCategories() => [
     Category(
@@ -248,6 +248,7 @@ class DatabaseHelper {
     }
   }
 
+
   Future<int> insertTask(Task task) async {
     try {
       final tasks = await getAllTasks();
@@ -346,14 +347,22 @@ class DatabaseHelper {
     }
   }
 
-  /// ✅ Thay vì enum TaskCategory: lọc theo categoryId
+// Lấy tasks theo categoryId (Option C)
   Future<List<Task>> getTasksByCategoryId(String categoryId) async {
     try {
       final tasks = await getAllTasks();
-      return tasks.where((t) => t.categoryId == categoryId).toList();
+
+      return tasks.where((task) {
+        // Nếu task cũ thiếu categoryId thì coi như uncategorized
+        final id = (task.categoryId == null || task.categoryId!.isEmpty)
+            ? DatabaseHelper.uncategorizedId
+            : task.categoryId!;
+
+        return id == categoryId;
+      }).toList();
     } catch (e) {
       if (kDebugMode) {
-        print('Error getTasksByCategoryId: $e');
+        print('Error getting tasks by categoryId: $e');
       }
       return [];
     }

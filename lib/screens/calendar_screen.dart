@@ -75,7 +75,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Sun'), Text('Mon'), Text('Tue'), Text('Wed'), Text('Thu'), Text('Fri'), Text('Sat'),
+                      Text('Mon'), Text('Tue'), Text('Wed'), Text('Thu'), Text('Fri'), Text('Sat'),Text('Sun'),
                     ],
                   ),
                   const SizedBox(height: 10),

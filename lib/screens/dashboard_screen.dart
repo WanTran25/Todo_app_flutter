@@ -4,6 +4,7 @@ import '../models/task.dart';
 import '../models/category.dart';
 import '../widgets/pie_chart_widget.dart';
 import '../widgets/task_card_widget.dart';
+import 'category_tasks_screen.dart';
 import 'task_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -311,40 +312,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
           runSpacing: 12,
           children: categories.map((c) {
             final count = _categoryStats[c.id] ?? 0;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: c.color.withOpacity(0.08),
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: c.color.withOpacity(0.2)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(color: c.color, shape: BoxShape.circle),
-                    child: Center(
-                      child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CategoryTasksScreen(
+                        categoryId: c.id,
+                        categoryName: c.name,
+                        categoryColor: c.color,
+                      ),
                     ),
+                  );
+                  _loadDashboardData(); // quay lại dashboard thì refresh
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: c.color.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: c.color.withOpacity(0.2)),
                   ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 150,
-                        child: Text(
-                          c.name,
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700]!),
-                          overflow: TextOverflow.ellipsis,
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(color: c.color, shape: BoxShape.circle),
+                        child: Center(
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
-                      Text('$count tasks', style: TextStyle(fontSize: 12, color: Colors.grey[500]!)),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 150,
+                            child: Text(
+                              c.name,
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700]!),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text('$count tasks', style: TextStyle(fontSize: 12, color: Colors.grey[500]!)),
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
             );
           }).toList(),
@@ -410,8 +433,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                   onStatusChanged: () async {
                     final newStatus = task.status == TaskStatus.done ? TaskStatus.todo : TaskStatus.done;
-
-                    // ✅ giữ createdAt + categoryId
                     final updatedTask = Task(
                       id: task.id,
                       title: task.title,
