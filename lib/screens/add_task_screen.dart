@@ -32,7 +32,6 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   void initState() {
     super.initState();
     _loadCategories();
-
     final now = TimeOfDay.now();
     final endHour = now.hour + 1;
     _endTime = TimeOfDay(
