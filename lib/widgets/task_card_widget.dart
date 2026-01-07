@@ -1,16 +1,18 @@
-import 'package:flutter/material.dart' hide DateUtils;  // Hide DateUtils từ material.dart
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart' hide DateUtils;
 import '../models/task.dart';
-import '../utils/date_utils.dart';  // Import DateUtils của chúng ta
+import '../models/category.dart';
+import '../utils/date_utils.dart';
 
 class TaskCardWidget extends StatelessWidget {
   final Task task;
+  final Category? category; // ✅ mới
   final VoidCallback? onTap;
   final VoidCallback? onStatusChanged;
   final bool showCategory;
 
   const TaskCardWidget({
     required this.task,
+    required this.category,
     this.onTap,
     this.onStatusChanged,
     this.showCategory = true,
@@ -18,8 +20,11 @@ class TaskCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final catName = (category?.name ?? 'UNCATEGORIZED');
+    final catColor = (category?.color ?? Colors.grey);
+
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -57,14 +62,14 @@ class TaskCardWidget extends StatelessWidget {
                                 ),
                                 child: task.status == TaskStatus.done
                                     ? Icon(
-                                        Icons.check,
-                                        size: 16,
-                                        color: _getStatusColor(task.status),
-                                      )
+                                  Icons.check,
+                                  size: 16,
+                                  color: _getStatusColor(task.status),
+                                )
                                     : null,
                               ),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 task.title,
@@ -86,34 +91,33 @@ class TaskCardWidget extends StatelessWidget {
                       ],
                     ),
                   ),
-                  
+
                   // Category Chip
                   if (showCategory) ...[
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: task.category.color.withOpacity(0.1),
+                        color: catColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: task.category.color.withOpacity(0.3),
-                        ),
+                        border: Border.all(color: catColor.withOpacity(0.3)),
                       ),
                       child: Text(
-                        task.category.name.split(' ')[0],
+                        catName,
                         style: TextStyle(
                           fontSize: 12,
-                          color: task.category.color,
+                          color: catColor,
                           fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ],
               ),
-              
-              SizedBox(height: 12),
-              
+
+              const SizedBox(height: 12),
+
               // Description
               if (task.description.isNotEmpty)
                 Text(
@@ -125,51 +129,38 @@ class TaskCardWidget extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              
-              SizedBox(height: 12),
-              
+
+              const SizedBox(height: 12),
+
               // Footer Row
               Row(
                 children: [
-                  // Time
-                  Icon(Icons.access_time, size: 16, color: Colors.grey),
-                  SizedBox(width: 4),
+                  const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                  const SizedBox(width: 4),
                   Text(
                     task.formattedTime,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
-                  
-                  SizedBox(width: 8),
-                  
-                  // Duration
+                  const SizedBox(width: 8),
+
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       DateUtils.formatDuration(task.duration),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                     ),
                   ),
-                  
-                  Spacer(),
-                  
-                  // Date
+
+                  const Spacer(),
+
                   if (!DateUtils.isToday(task.startTime))
                     Text(
                       DateUtils.getRelativeDate(task.startTime),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                 ],
               ),
@@ -194,45 +185,42 @@ class TaskCardWidget extends StatelessWidget {
 
 class TaskCardCompactWidget extends StatelessWidget {
   final Task task;
+  final Category? category;
   final VoidCallback? onTap;
 
   const TaskCardCompactWidget({
     required this.task,
+    required this.category,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final catName = (category?.name ?? 'UNCATEGORIZED');
+    final catColor = (category?.color ?? Colors.grey);
+
     return ListTile(
       onTap: onTap,
       leading: Container(
         width: 12,
         height: 12,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: task.category.color,
-        ),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: catColor),
       ),
       title: Text(
         task.title,
         style: TextStyle(
           fontSize: 16,
-          decoration: task.status == TaskStatus.done
-              ? TextDecoration.lineThrough
-              : null,
+          decoration: task.status == TaskStatus.done ? TextDecoration.lineThrough : null,
         ),
       ),
       subtitle: Text(
-        '${task.formattedTime} • ${task.category.name}',
-        style: TextStyle(fontSize: 12),
+        '${task.formattedTime} • $catName',
+        style: const TextStyle(fontSize: 12),
       ),
       trailing: Container(
         width: 8,
         height: 8,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _getStatusColor(task.status),
-        ),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: _getStatusColor(task.status)),
       ),
     );
   }

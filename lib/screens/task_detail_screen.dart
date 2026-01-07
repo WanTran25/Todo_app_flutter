@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../database/database_helper.dart';
 import '../models/task.dart';
+import '../models/category.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final Task task;
@@ -24,6 +25,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
+  Category? _category;
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +34,13 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     _titleController.text = _task.title;
     _descriptionController.text = _task.description;
     _notesController.text = _task.notes ?? '';
+    _loadCategory();
+  }
+
+  Future<void> _loadCategory() async {
+    final cat = await _dbHelper.getCategoryById(_task.categoryId);
+    if (!mounted) return;
+    setState(() => _category = cat);
   }
 
   Future<void> _updateTask() async {
@@ -41,8 +51,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       startTime: _task.startTime,
       endTime: _task.endTime,
       status: _task.status,
-      category: _task.category,
+      categoryId: _task.categoryId, // ✅ giữ category
       notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+      createdAt: _task.createdAt, // ✅ giữ createdAt
     );
 
     await _dbHelper.updateTask(updatedTask);
@@ -50,13 +61,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       _task = updatedTask;
       _isEditing = false;
     });
-    
-    if (widget.onTaskUpdated != null) {
-      widget.onTaskUpdated!();
-    }
-    
+
+    widget.onTaskUpdated?.call();
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Task updated successfully')),
+      const SnackBar(content: Text('Task updated successfully')),
     );
   }
 
@@ -64,26 +73,19 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Task'),
-        content: Text('Are you sure you want to delete this task?'),
+        title: const Text('Delete Task'),
+        content: const Text('Are you sure you want to delete this task?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
               await _dbHelper.deleteTask(_task.id!);
+              if (!mounted) return;
               Navigator.pop(context);
               Navigator.pop(context);
-              if (widget.onTaskUpdated != null) {
-                widget.onTaskUpdated!();
-              }
+              widget.onTaskUpdated?.call();
             },
-            child: Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -98,37 +100,38 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       startTime: _task.startTime,
       endTime: _task.endTime,
       status: newStatus,
-      category: _task.category,
+      categoryId: _task.categoryId,
       notes: _task.notes,
+      createdAt: _task.createdAt,
     );
 
     await _dbHelper.updateTask(updatedTask);
     setState(() => _task = updatedTask);
-    
-    if (widget.onTaskUpdated != null) {
-      widget.onTaskUpdated!();
-    }
+    widget.onTaskUpdated?.call();
   }
 
   @override
   Widget build(BuildContext context) {
+    final catName = _category?.name ?? 'UNCATEGORIZED';
+    final catColor = _category?.color ?? Colors.grey;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Task' : 'Task Details'),
         actions: [
           if (!_isEditing)
             IconButton(
-              icon: Icon(Icons.edit),
+              icon: const Icon(Icons.edit),
               onPressed: () => setState(() => _isEditing = true),
             ),
           IconButton(
-            icon: Icon(Icons.delete, color: Colors.red),
+            icon: const Icon(Icons.delete, color: Colors.red),
             onPressed: _deleteTask,
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -136,21 +139,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: _getStatusColor(_task.status),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     _task.status.toString().split('.').last.toUpperCase(),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
-                SizedBox(width: 10),
-                if (!_isEditing) ...[
+                const SizedBox(width: 10),
+                if (!_isEditing)
                   DropdownButton<TaskStatus>(
                     value: _task.status,
                     items: TaskStatus.values.map((status) {
@@ -160,62 +160,41 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       );
                     }).toList(),
                     onChanged: (newStatus) {
-                      if (newStatus != null) {
-                        _updateStatus(newStatus);
-                      }
+                      if (newStatus != null) _updateStatus(newStatus);
                     },
                   ),
-                ],
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             // Category Chip
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _task.category.color.withOpacity(0.1),
+                color: catColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _task.category.color),
+                border: Border.all(color: catColor),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircleAvatar(
-                    backgroundColor: _task.category.color,
-                    radius: 8,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    _task.category.name,
-                    style: TextStyle(
-                      color: _task.category.color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  CircleAvatar(backgroundColor: catColor, radius: 8),
+                  const SizedBox(width: 8),
+                  Text(catName, style: TextStyle(color: catColor, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
 
-            // Title (Editable)
+            // Title
             _isEditing
                 ? TextFormField(
-                    controller: _titleController,
-                    decoration: InputDecoration(
-                      labelText: 'Title',
-                      border: OutlineInputBorder(),
-                    ),
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  )
-                : Text(
-                    _task.title,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-            SizedBox(height: 20),
+              controller: _titleController,
+              decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            )
+                : Text(_task.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
 
             // Date & Time
             Card(
@@ -225,27 +204,24 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, color: Colors.grey),
-                        SizedBox(width: 10),
-                        Text(
-                          DateFormat('EEE, MMM d, yyyy').format(_task.startTime),
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        const Icon(Icons.calendar_today, color: Colors.grey),
+                        const SizedBox(width: 10),
+                        Text(DateFormat('EEE, MMM d, yyyy').format(_task.startTime), style: const TextStyle(fontSize: 16)),
                       ],
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.access_time, color: Colors.grey),
-                        SizedBox(width: 10),
+                        const Icon(Icons.access_time, color: Colors.grey),
+                        const SizedBox(width: 10),
                         Text(
                           '${DateFormat('HH:mm').format(_task.startTime)} - ${DateFormat('HH:mm').format(_task.endTime)}',
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Text(
                           '(${_task.duration.inHours}h ${_task.duration.inMinutes.remainder(60)}m)',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          style: const TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -253,88 +229,50 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             // Description
-            Text(
-              'Description',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-            SizedBox(height: 10),
+            Text('Description', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+            const SizedBox(height: 10),
             _isEditing
                 ? TextFormField(
-                    controller: _descriptionController,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter description',
-                    ),
-                  )
+              controller: _descriptionController,
+              maxLines: 4,
+              decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Enter description'),
+            )
                 : Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        _task.description,
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-            SizedBox(height: 20),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(_task.description, style: const TextStyle(fontSize: 16)),
+              ),
+            ),
+            const SizedBox(height: 20),
 
             // Notes
-            Text(
-              'Notes',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-            SizedBox(height: 10),
+            Text('Notes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+            const SizedBox(height: 10),
             _isEditing
                 ? TextFormField(
-                    controller: _notesController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Add notes...',
-                    ),
-                  )
+              controller: _notesController,
+              maxLines: 3,
+              decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Add notes...'),
+            )
                 : Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _task.notes != null && _task.notes!.isNotEmpty
-                          ? Text(
-                              _task.notes!,
-                              style: TextStyle(fontSize: 16),
-                            )
-                          : Text(
-                              'No notes added',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                    ),
-                  ),
-            SizedBox(height: 30),
-
-            // Created At
-            Text(
-              'Created: ${DateFormat('MMM d, yyyy - HH:mm').format(_task.createdAt)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _task.notes != null && _task.notes!.isNotEmpty
+                    ? Text(_task.notes!, style: const TextStyle(fontSize: 16))
+                    : const Text('No notes added', style: TextStyle(fontSize: 16, color: Colors.grey, fontStyle: FontStyle.italic)),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 30),
 
-            // Save/Cancel Buttons for editing
+            Text(
+              'Created: ${DateFormat('MMM d, yyyy - HH:mm').format(_task.createdAt)}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+
             if (_isEditing)
               Row(
                 children: [
@@ -346,21 +284,16 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         _descriptionController.text = _task.description;
                         _notesController.text = _task.notes ?? '';
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
-                        foregroundColor: Colors.black,
-                      ),
-                      child: Text('CANCEL'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[300], foregroundColor: Colors.black),
+                      child: const Text('CANCEL'),
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: _updateTask,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                      ),
-                      child: Text('SAVE'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                      child: const Text('SAVE'),
                     ),
                   ),
                 ],

@@ -1,40 +1,10 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:intl/intl.dart';
 
 enum TaskStatus { todo, inProgress, done }
-enum TaskCategory { sportApp, medicalApp, rentApp, notes, gamingPlatform }
 
-extension TaskCategoryExtension on TaskCategory {
-  String get name {
-    switch (this) {
-      case TaskCategory.sportApp:
-        return 'SPORT APP';
-      case TaskCategory.medicalApp:
-        return 'MEDICAL APP';
-      case TaskCategory.rentApp:
-        return 'RENT APP';
-      case TaskCategory.notes:
-        return 'NOTES';
-      case TaskCategory.gamingPlatform:
-        return 'GAMING PLATFORM APP';
-    }
-  }
-
-  Color get color {
-    switch (this) {
-      case TaskCategory.sportApp:
-        return Colors.green;
-      case TaskCategory.medicalApp:
-        return Colors.blue;
-      case TaskCategory.rentApp:
-        return Colors.orange;
-      case TaskCategory.notes:
-        return Colors.purple;
-      case TaskCategory.gamingPlatform:
-        return Colors.red;
-    }
-  }
-}
+/// Category ID mặc định khi category bị xoá / không tồn tại
+const String kUncategorizedCategoryId = 'uncategorized';
 
 class Task {
   int? id;
@@ -43,7 +13,7 @@ class Task {
   DateTime startTime;
   DateTime endTime;
   TaskStatus status;
-  TaskCategory category;
+  String categoryId; // ✅ thay vì enum TaskCategory
   DateTime createdAt;
   String? notes;
 
@@ -54,12 +24,11 @@ class Task {
     required this.startTime,
     required this.endTime,
     this.status = TaskStatus.todo,
-    required this.category,
+    required this.categoryId,
     DateTime? createdAt,
     this.notes,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  // Chuyển đổi thành Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -68,56 +37,90 @@ class Task {
       'startTime': startTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),
       'status': status.index,
-      'category': category.index,
+      'categoryId': categoryId,
       'createdAt': createdAt.toIso8601String(),
       'notes': notes,
     };
   }
 
-  // Tạo Task từ Map
   factory Task.fromMap(Map<String, dynamic> map) {
+    final statusIndex = (map['status'] as int?) ?? 0;
+    final safeStatus = (statusIndex >= 0 && statusIndex < TaskStatus.values.length)
+        ? TaskStatus.values[statusIndex]
+        : TaskStatus.todo;
+
     return Task(
       id: map['id'] as int?,
-      title: map['title'] as String,
-      description: map['description'] as String,
+      title: (map['title'] as String?) ?? '',
+      description: (map['description'] as String?) ?? '',
       startTime: DateTime.parse(map['startTime'] as String),
       endTime: DateTime.parse(map['endTime'] as String),
-      status: TaskStatus.values[map['status'] as int],
-      category: TaskCategory.values[map['category'] as int],
-      createdAt: DateTime.parse(map['createdAt'] as String),
+      status: safeStatus,
+      categoryId: (map['categoryId'] as String?) ?? kUncategorizedCategoryId,
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
       notes: map['notes'] as String?,
     );
   }
 
-  // Chuyển đổi thành JSON string để lưu
-  String toJson() {
-    final map = toMap();
-    // Sử dụng dấu phân cách đặc biệt để tránh conflict
-    return '${map['id'] ?? ""}||${map['title']}||${map['description']}||${map['startTime']}||${map['endTime']}||${map['status']}||${map['category']}||${map['createdAt']}||${map['notes'] ?? ""}';
-  }
+  /// ✅ Lưu dạng JSON string (mới)
+  String toJson() => jsonEncode(toMap());
 
-  // Tạo Task từ JSON string
-  factory Task.fromJson(String json) {
+  /// ✅ Đọc JSON mới; nếu fail thì đọc format cũ delimiter "||" (legacy)
+  factory Task.fromJson(String raw) {
+    // 1) thử JSON mới
     try {
-      final parts = json.split('||');
-      if (parts.length != 9) {
-        throw FormatException('Invalid JSON format');
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return Task.fromMap(decoded);
       }
-      
+    } catch (_) {
+      // ignore
+    }
+
+    // 2) fallback legacy format cũ: id||title||description||start||end||statusIndex||categoryIndex||createdAt||notes
+    final parts = raw.split('||');
+    if (parts.length == 9) {
+      final statusIndex = int.tryParse(parts[5]) ?? 0;
+      final safeStatus = (statusIndex >= 0 && statusIndex < TaskStatus.values.length)
+          ? TaskStatus.values[statusIndex]
+          : TaskStatus.todo;
+
+      final legacyCatIndex = int.tryParse(parts[6]) ?? -1;
+      final mappedCategoryId = _legacyCategoryIndexToId(legacyCatIndex);
+
       return Task(
-        id: parts[0].isNotEmpty ? int.parse(parts[0]) : null,
+        id: parts[0].isNotEmpty ? int.tryParse(parts[0]) : null,
         title: parts[1],
         description: parts[2],
         startTime: DateTime.parse(parts[3]),
         endTime: DateTime.parse(parts[4]),
-        status: TaskStatus.values[int.parse(parts[5])],
-        category: TaskCategory.values[int.parse(parts[6])],
-        createdAt: DateTime.parse(parts[7]),
+        status: safeStatus,
+        categoryId: mappedCategoryId,
+        createdAt: DateTime.tryParse(parts[7]) ?? DateTime.now(),
         notes: parts[8].isNotEmpty ? parts[8] : null,
       );
-    } catch (e) {
-      print('Error parsing Task from JSON: $e, JSON: $json');
-      rethrow;
+    }
+
+    // 3) nếu format lạ -> throw
+    throw FormatException('Invalid task format: $raw');
+  }
+
+  static String _legacyCategoryIndexToId(int index) {
+    // mapping đúng theo enum cũ của bạn:
+    // 0 sportApp, 1 medicalApp, 2 rentApp, 3 notes, 4 gamingPlatform
+    switch (index) {
+      case 0:
+        return 'sportApp';
+      case 1:
+        return 'medicalApp';
+      case 2:
+        return 'rentApp';
+      case 3:
+        return 'notes';
+      case 4:
+        return 'gamingPlatform';
+      default:
+        return kUncategorizedCategoryId;
     }
   }
 
@@ -142,9 +145,7 @@ class Task {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Task &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+          other is Task && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
